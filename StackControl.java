@@ -70,6 +70,46 @@ public class StackControl extends JavaPlugin implements Listener {
 
 
     public void onEnable() {
+        getConfig().options().copyDefaults(true);
+        saveConfig();
+        reloadConfig();
+
+        int id = Material.MOB_SPAWNER.getId();
+
+        setField("fieldMaxStackSize", "maxStackSize", 1, 1);
+        setField("fieldHasSubtypes", "bT", 1, false);
+
+        // craftingResult = containerItem (for water buckets, etc.)
+        //setField("fieldContainerItem", "craftingResult", 1, ...);
+
+
+        // Other item fields, not set here
+        // should max damage work? for tools..or is it client-side, too?
+        //setField("fieldMaxDamage", "durability", Material.DIAMOND_SWORD.getId(), 1);
+        // bS = bFull3D (client-side)
+        //setField("fieldBFull3D", "bS", 1, true);
+        // bU = potionEffect (doesn't seem to useful?)
+        //setField("fieldPotionEffect", "bU", 1, "foo");
+        // textureId
+        // name
+    }
+
+    public void setField(String myName, String defaultName, int id, Object value) {
+        String bukkitName = getConfig().getString(myName, defaultName);
+
+        try {
+            Field field = net.minecraft.server.Item.class.getDeclaredField(bukkitName);
+            field.setAccessible(true);
+            if (value instanceof Integer) {
+                field.setInt(net.minecraft.server.Item.byId[id], ((Integer)value).intValue());
+            } else if (value instanceof Boolean) {
+                field.setBoolean(net.minecraft.server.Item.byId[id], ((Boolean)value).booleanValue());
+            } else { 
+                field.set(net.minecraft.server.Item.byId[id], value);
+            } 
+        } catch (Exception e) {
+            log.warning("Failed to set field '"+bukkitName+"' ("+myName+") for id "+id+ ": " + e);
+        }
     }
 
     public void onDisable() {
