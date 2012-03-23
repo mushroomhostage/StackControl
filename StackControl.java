@@ -74,34 +74,53 @@ public class StackControl extends JavaPlugin implements Listener {
         saveConfig();
         reloadConfig();
 
-        List<Map<?,?>> itemsMap = getConfig().getMapList("items");
-        for (Map<?,?> itemMap: itemsMap) {
-            HashMap<String,Object> map = new HashMap<String,Object>();
+        List<Map<?,?>> maps = getConfig().getMapList("items");
+        for (Map<?,?> map: maps) {
+            int id;
+
+            // Get id
+            Object objId = map.get("id");
+            if (objId == null) {
+                log.warning("Ignoring entry without id: " + map);
+                continue;
+            }
+            if (objId instanceof Integer) {
+                id = ((Integer)objId).intValue();
+            } else if (objId instanceof String) {
+                Material material = Material.matchMaterial((String)objId);
+                if (material == null) {
+                    log.warning("Ignoring entry with invalid material name: " + objId + " in " + map);
+                    continue;
+                }
+                id = material.getId();
+            } else {
+                log.warning("Ignoring entry with unrecognized material type: " + objId + " in " + map);
+                continue;
+            }
 
             // Read items map into hash
-            for (Map.Entry<?,?> entry: itemMap.entrySet()) {
+            for (Map.Entry<?,?> entry: map.entrySet()) {
                 Object key = entry.getKey();
-                Object obj = entry.getValue();
+                Object value = entry.getValue();
 
                 if (!(key instanceof String)) {
-                    log.warning("Ignoring non-string key " + key);
+                    log.warning("Ignoring non-string key: " + key + " in " + map);
+                    continue;
+                }
+                
+                String name = (String)key;
+                if (name.equals("id")) {
                     continue;
                 }
 
-                map.put((String)key, obj);
-            }
+                String translatedName = getConfig().getString("fields." + name, name);
 
-            map.get("id");
+                setField(translatedName, id, value);
+            }
         }
 
-        int id = Material.MOB_SPAWNER.getId();
-
-        setField("fieldMaxStackSize", "maxStackSize", 1, 1);
-        setField("fieldHasSubtypes", "bT", 1, false);
-
-        // craftingResult = containerItem (for water buckets, etc.)
+        // TODO: craftingResult = containerItem (for water buckets, etc., keeps on grid)
         //setField("fieldContainerItem", "craftingResult", 1, ...);
-
 
         // Other item fields, not set here
         // should max damage work? for tools..or is it client-side, too?
@@ -114,11 +133,9 @@ public class StackControl extends JavaPlugin implements Listener {
         // name
     }
 
-    public void setField(String myName, String defaultName, int id, Object value) {
-        String bukkitName = getConfig().getString(myName, defaultName);
-
+    public void setField(String fieldName, int id, Object value) {
         try {
-            Field field = net.minecraft.server.Item.class.getDeclaredField(bukkitName);
+            Field field = net.minecraft.server.Item.class.getDeclaredField(fieldName);
             field.setAccessible(true);
             if (value instanceof Integer) {
                 field.setInt(net.minecraft.server.Item.byId[id], ((Integer)value).intValue());
@@ -128,8 +145,9 @@ public class StackControl extends JavaPlugin implements Listener {
                 field.set(net.minecraft.server.Item.byId[id], value);
             } 
         } catch (Exception e) {
-            log.warning("Failed to set field '"+bukkitName+"' ("+myName+") for id "+id+ ": " + e);
+            log.warning("Failed to set field '"+fieldName+" for id "+id+ ": " + e);
         }
+        log.info("Set field " + id + "." + fieldName + " = " + value);
     }
 
     public void onDisable() {
