@@ -74,6 +74,26 @@ public class StackControl extends JavaPlugin implements Listener {
         saveConfig();
         reloadConfig();
 
+        List<Map<?,?>> itemsMap = getConfig().getMapList("items");
+        for (Map<?,?> itemMap: itemsMap) {
+            HashMap<String,Object> map = new HashMap<String,Object>();
+
+            // Read items map into hash
+            for (Map.Entry<?,?> entry: itemMap.entrySet()) {
+                Object key = entry.getKey();
+                Object obj = entry.getValue();
+
+                if (!(key instanceof String)) {
+                    log.warning("Ignoring non-string key " + key);
+                    continue;
+                }
+
+                map.put((String)key, obj);
+            }
+
+            map.get("id");
+        }
+
         int id = Material.MOB_SPAWNER.getId();
 
         setField("fieldMaxStackSize", "maxStackSize", 1, 1);
