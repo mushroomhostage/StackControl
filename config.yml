@@ -1,0 +1,7 @@
+fields:
+    maxStackSize: maxStackSize
+    hasSubtypes: bT
+items:
+    - id: feather
+      maxStackSize: 1
+      hasSubtypes: true
